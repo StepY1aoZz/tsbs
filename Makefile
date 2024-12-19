@@ -13,7 +13,8 @@ GOFMT=$(GOCMD) fmt
 all: generators loaders runners
 
 generators: tsbs_generate_data \
-			tsbs_generate_queries
+			tsbs_generate_queries \
+			tsbs_preprocess_opengemini \
 
 loaders: tsbs_load \
 		 tsbs_load_akumuli \
@@ -26,7 +27,8 @@ loaders: tsbs_load \
  		 tsbs_load_siridb \
  		 tsbs_load_timescaledb \
  		 tsbs_load_victoriametrics \
- 		 tsbs_load_questdb
+ 		 tsbs_load_questdb	\
+ 		 tsbs_load_opengemini \
 
 runners: tsbs_run_queries_akumuli \
 		 tsbs_run_queries_cassandra \
@@ -66,3 +68,7 @@ lint:
 
 fmt:
 	$(GOFMT) ./...
+
+
+rebuild: tsbs_preprocess_opengemini \
+			tsbs_load_opengemini
