@@ -6,7 +6,7 @@ DATABASE_NAME=${DATABASE_NAME:-"benchmark"}
 PORT=${PORT:-5432}
 
 # Data folder
-BULK_DATA_DIR=${BULK_DATA_DIR:-"/tmp/bulk_data"}
+BULK_DATA_DIR=${BULK_DATA_DIR:-"/tmp"}
 # Full path to data file
 DATA_FILE=${DATA_FILE:-${BULK_DATA_DIR}/${DATA_FILE_NAME}}
 

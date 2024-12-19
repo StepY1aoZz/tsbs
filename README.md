@@ -1,3 +1,28 @@
+# NOTE
+This fork implemented new openGemini record-write benchmark. 
+Here are some examples:
+
+```bash
+# generate test data
+tsbs_generate_data --use-case="devops" --seed=123 --scale=4000 \
+    --timestamp-start="2016-01-01T00:00:00Z" \
+    --timestamp-end="2016-01-04T00:00:00Z" \
+    --log-interval="60s" --format="influx" | tsbs_preprocess_opengemini -maxrows=10000 | gzip > /tmp/gemini.gz
+# use 'maxrows' to control how many rows are in single record
+```
+
+There is also another script for loading record data in openGemini conveniently:
+```bash
+# execute loading
+NUM_WORKERS=4 BULK_DATA_DIR=/tmp DATA_FILE_NAME=gemini.gz \
+    scripts/load/load_opengemini.sh
+# Will insert using 4 clients, from a file named `gemini.gz` in directory `/tmp`
+```
+PLEASE note that in tsbs_load_opengemini, the parameter `url` contains two part: first part is an HTTP address for creating/dropping database and
+the second part is the gRPC address. The two parts are seperated by comma.
+For an example: `--url="http://127.0.0.1:8086,127.0.0.1:8305"`
+
+
 # Time Series Benchmark Suite (TSBS)
 This repo contains code for benchmarking several time series databases,
 including TimescaleDB, MongoDB, InfluxDB, CrateDB and Cassandra.
