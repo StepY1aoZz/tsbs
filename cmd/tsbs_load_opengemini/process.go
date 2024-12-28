@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/timescale/tsbs/pkg/targets"
 	"log"
+
+	"github.com/timescale/tsbs/pkg/targets"
 )
 
 type processor struct {
@@ -34,6 +35,7 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (metricCount, row
 			log.Printf("error writing request: %v", err)
 		}
 	}
-	bytesPool.Put(tb.data[:0])
+	tb.data = tb.data[:0]
+	bytesPool.Put(&tb.data)
 	return uint64(tb.metric), uint64(tb.row)
 }

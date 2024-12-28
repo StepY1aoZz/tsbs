@@ -16,8 +16,10 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/jackc/pgx/v4 v4.8.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5
+	github.com/klauspost/compress v1.10.10
 	github.com/kshvakov/clickhouse v1.3.11
 	github.com/lib/pq v1.3.0
+	github.com/pierrec/lz4 v2.0.5+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.13.0
 	github.com/shirou/gopsutil v3.21.3+incompatible
@@ -58,7 +60,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.4.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.10.10 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect

@@ -9,7 +9,8 @@ import (
 func TestFileScan(t *testing.T) {
 	bytesPool = sync.Pool{
 		New: func() interface{} {
-			return make([]byte, 0, 4*1024*1024)
+			tmp := make([]byte, 0, 4*1024*1024)
+			return &tmp
 		},
 	}
 	f, err := os.Open("/tmp/gemini-data")
