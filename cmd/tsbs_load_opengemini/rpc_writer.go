@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/timescale/tsbs/pkg/targets/opengemini/proto"
 	"google.golang.org/grpc"
-	"log"
 )
 
 type rpcWriter struct {
@@ -25,7 +26,7 @@ func (w *rpcWriter) WriteRequest(cfg rpcWriteConfig, data []byte) error {
 		Records: []*proto.Record{
 			{
 				Measurement:    cfg.Measurement,
-				CompressMethod: proto.CompressMethod_UNCOMPRESSED,
+				CompressMethod: compressDict[compressMethod],
 				Block:          data,
 			},
 		},

@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"encoding/binary"
 	"flag"
-	"github.com/valyala/fastjson/fastfloat"
 	"log"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/valyala/fastjson/fastfloat"
 
 	"github.com/timescale/tsbs/pkg/targets/opengemini/record"
 )
@@ -20,10 +22,30 @@ var InputPath = flag.String("input", "", "Input file path. Should be generated b
 
 var OutputPath = flag.String("out", "", "Output folder. left blank if write to STDOUT")
 
+var useSnappy = flag.Bool("snappy", false, "Whether to use snappy compression")
+
+var useZstd = flag.Bool("zstd", false, "Whether to use zstd compression")
+
+var useLz4 = flag.Bool("lz4", false, "Whether to use lz4 compression")
+
+const (
+	compressionNone = iota
+	compressionSnappy
+	compressionZstd
+	compressionLz4
+)
+
 var (
-	tagsMap   = map[string][][]string{}
-	fieldsMap = map[string][][]string{}
-	timesMap  = map[string][]string{}
+	tagsMap     = map[string][][]string{}
+	fieldsMap   = map[string][][]string{}
+	timesMap    = map[string][]string{}
+	compression = compressionNone
+	bytesPool   = sync.Pool{
+		New: func() interface{} {
+			s := make([]byte, 0, 4<<20)
+			return &s
+		},
+	}
 )
 
 func main() {
@@ -39,6 +61,14 @@ func main() {
 		defer input.Close()
 		scanner = bufio.NewScanner(input)
 	}
+	if *useSnappy {
+		compression = compressionSnappy
+	} else if *useZstd {
+		compression = compressionZstd
+	} else if *useLz4 {
+		compression = compressionLz4
+	}
+
 	var w *os.File
 	if *OutputPath == "" {
 		w = os.Stdout
@@ -52,6 +82,7 @@ func main() {
 	}
 	t := make([]byte, 0)
 	t = binary.BigEndian.AppendUint32(t, 0x1225)
+	t = binary.BigEndian.AppendUint32(t, uint32(compression))
 	w.Write(t)
 	preProcess(scanner, *MaxRows, w)
 }
@@ -79,6 +110,8 @@ func preProcess(scanner *bufio.Scanner, maxRow uint, w *os.File) {
 				log.Fatal(err)
 			}
 			resetAll(mst)
+			res = res[:0]
+			bytesPool.Put(&res)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -155,16 +188,26 @@ func toRecordBytes(mst string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	res := make([]byte, 0)
-	size := rec.CodecSize() + (2 * record.SizeOfUint32()) + record.SizeOfString(mst) //length of all following part
+	dataPtr := bytesPool.Get().(*[]byte)
+	data := *dataPtr
+	data, err = rec.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	data, n, err := doCompress(data, compression)
+	if err != nil {
+		panic(err)
+	}
+	resPtr := bytesPool.Get().(*[]byte)
+	res := *resPtr
+	size := n + (2 * record.SizeOfUint32()) + record.SizeOfString(mst) //length of all following part
 	res = record.AppendUint32(res, uint32(size))
 	res = record.AppendString(res, mst)
 	res = record.AppendUint32(res, uint32(rec.ColVals[0].Len))
 	res = record.AppendUint32(res, uint32(len(fields[0])*rec.ColVals[0].Len))
-	res, err = rec.Marshal(res)
-	if err != nil {
-		panic(err)
-	}
+	res = append(res, data...)
+	data = data[:0]
+	bytesPool.Put(&data)
 	return res
 }
 

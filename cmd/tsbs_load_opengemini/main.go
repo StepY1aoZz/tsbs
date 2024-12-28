@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/blagojts/viper"
 	"github.com/spf13/pflag"
@@ -19,34 +18,38 @@ import (
 	"github.com/timescale/tsbs/pkg/targets"
 	"github.com/timescale/tsbs/pkg/targets/constants"
 	"github.com/timescale/tsbs/pkg/targets/initializers"
+	"github.com/timescale/tsbs/pkg/targets/opengemini/proto"
 )
 
 // Program option vars:
 var (
 	daemonURLs        []string
 	replicationFactor int
-	backoff           time.Duration
-	useGzip           bool
-	doAbortOnExist    bool
-	consistency       string
 )
 
 // Global vars
 var (
-	loader    load.BenchmarkRunner
-	config    load.BenchmarkRunnerConfig
-	bytesPool sync.Pool
-	target    targets.ImplementedTarget
-	maxSize   int
-	fileName  string
+	loader         load.BenchmarkRunner
+	config         load.BenchmarkRunnerConfig
+	bytesPool      sync.Pool
+	target         targets.ImplementedTarget
+	maxSize        int
+	fileName       string
+	compressMethod int
+	compressDict   = map[int]proto.CompressMethod{
+		compressionNone:   proto.CompressMethod_UNCOMPRESSED,
+		compressionSnappy: proto.CompressMethod_SNAPPY,
+		compressionZstd:   proto.CompressMethod_ZSTD_FAST,
+		compressionLz4:    proto.CompressMethod_LZ4_FAST,
+	}
 )
 
-var consistencyChoices = map[string]struct{}{
-	"any":    {},
-	"one":    {},
-	"quorum": {},
-	"all":    {},
-}
+const (
+	compressionNone = iota
+	compressionSnappy
+	compressionZstd
+	compressionLz4
+)
 
 // allows for testing
 var fatal = log.Fatalf
@@ -72,8 +75,6 @@ func init() {
 	}
 
 	csvDaemonURLs = viper.GetString("urls")
-	backoff = viper.GetDuration("backoff")
-	useGzip = viper.GetBool("gzip")
 	maxSize = viper.GetInt("maxsize")
 
 	if config.BatchSize != 1 {
@@ -130,7 +131,8 @@ func (b *benchmark) GetDBCreator() targets.DBCreator {
 func main() {
 	bytesPool = sync.Pool{
 		New: func() interface{} {
-			return make([]byte, 0, 4*1024*1024)
+			t := make([]byte, 0, 4*1024*1024)
+			return &t
 		},
 	}
 
